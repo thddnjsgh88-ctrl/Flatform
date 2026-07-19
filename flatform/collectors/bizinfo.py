@@ -38,12 +38,9 @@ def _parse_period(value: str) -> tuple[date | None, date | None]:
     return None, None
 
 
-def fetch_announcements(api_key: str | None = None, count: int = 50,
-                        hashtags: str | None = None) -> list[Announcement]:
-    """기업마당 공고를 수집해 Announcement 목록으로 변환한다.
-
-    hashtags 예: "서울,소상공인" — API 측 필터를 그대로 전달한다.
-    """
+def fetch_raw(api_key: str | None = None, count: int = 50,
+              hashtags: str | None = None) -> dict | list:
+    """기업마당 API 원본 응답(JSON)을 반환한다. 필드 매핑 검증용으로도 쓴다."""
     api_key = api_key or os.environ.get("BIZINFO_API_KEY")
     if not api_key:
         raise RuntimeError("기업마당 인증키가 필요합니다. BIZINFO_API_KEY 환경변수를 설정하세요.")
@@ -52,9 +49,12 @@ def fetch_announcements(api_key: str | None = None, count: int = 50,
     if hashtags:
         params["hashtags"] = hashtags
     with urllib.request.urlopen(f"{API_URL}?{urllib.parse.urlencode(params)}", timeout=30) as resp:
-        payload = json.loads(resp.read().decode("utf-8"))
+        return json.loads(resp.read().decode("utf-8"))
 
-    items = payload.get("jsonArray", payload if isinstance(payload, list) else [])
+
+def to_announcements(payload: dict | list) -> list[Announcement]:
+    """원본 응답을 Announcement 목록으로 변환한다."""
+    items = payload.get("jsonArray", []) if isinstance(payload, dict) else payload
     announcements = []
     for item in items:
         start, end = _parse_period(item.get("reqstBeginEndDe", ""))
@@ -70,3 +70,12 @@ def fetch_announcements(api_key: str | None = None, count: int = 50,
             source=Source.BIZINFO,
         ))
     return announcements
+
+
+def fetch_announcements(api_key: str | None = None, count: int = 50,
+                        hashtags: str | None = None) -> list[Announcement]:
+    """기업마당 공고를 수집해 Announcement 목록으로 변환한다.
+
+    hashtags 예: "서울,소상공인" — API 측 필터를 그대로 전달한다.
+    """
+    return to_announcements(fetch_raw(api_key, count, hashtags))

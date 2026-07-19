@@ -38,17 +38,32 @@ python -m flatform.demo --today 2026-07-19
 python -m unittest discover -s tests
 ```
 
-실 API 연동 시:
+## 실 API 연동 검증
+
+API 키 발급 (모두 무료):
+
+1. **기업마당**: [bizinfo.go.kr](https://www.bizinfo.go.kr) 회원가입 → 활용정보 > 정책정보 개방 →
+   OpenAPI 인증키 신청 → 발급된 인증키를 `BIZINFO_API_KEY` 로 설정
+2. **K-Startup**: [data.go.kr](https://www.data.go.kr) 회원가입 →
+   "창업진흥원_K-Startup 조회서비스" 검색 → 활용신청(자동승인) →
+   마이페이지의 **Decoding 인증키**를 `DATA_GO_KR_KEY` 로 설정
 
 ```bash
-export BIZINFO_API_KEY=...   # 기업마당 > 활용정보 > 정책정보 개방 에서 발급
-export DATA_GO_KR_KEY=...    # 공공데이터포털에서 'K-Startup 조회서비스' 활용신청
+# macOS/Linux                      # Windows (PowerShell)
+export BIZINFO_API_KEY=발급키       $env:BIZINFO_API_KEY="발급키"
+export DATA_GO_KR_KEY=발급키        $env:DATA_GO_KR_KEY="발급키"
 ```
 
-```python
-from flatform.collectors.bizinfo import fetch_announcements
-from flatform.matcher import match_all
+수집 + 파서 커버리지 검증:
+
+```bash
+python -m flatform.validate --source bizinfo --count 100
+python -m flatform.validate --source kstartup --count 100
+python -m flatform.validate --source samples    # 키 없이 리포트 형식 확인
 ```
+
+원본 응답은 `data/raw/` 에 저장되고, 요건 항목별 추출률과 미추출 공고 예시가
+출력된다. 필드 매핑이 어긋나면 실제 필드명 목록을 경고와 함께 보여준다.
 
 ## 판정 로직 원칙
 

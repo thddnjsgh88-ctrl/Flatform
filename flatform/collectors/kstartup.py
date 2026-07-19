@@ -30,8 +30,9 @@ def _parse_date(value: str | None) -> date | None:
         return None
 
 
-def fetch_announcements(service_key: str | None = None, count: int = 50,
-                        page: int = 1) -> list[Announcement]:
+def fetch_raw(service_key: str | None = None, count: int = 50,
+              page: int = 1) -> dict:
+    """K-Startup API 원본 응답(JSON)을 반환한다. 필드 매핑 검증용으로도 쓴다."""
     service_key = service_key or os.environ.get("DATA_GO_KR_KEY")
     if not service_key:
         raise RuntimeError("공공데이터포털 서비스키가 필요합니다. DATA_GO_KR_KEY 환경변수를 설정하세요.")
@@ -43,8 +44,11 @@ def fetch_announcements(service_key: str | None = None, count: int = 50,
         "pageNo": str(page),
     }
     with urllib.request.urlopen(f"{API_URL}?{urllib.parse.urlencode(params)}", timeout=30) as resp:
-        payload = json.loads(resp.read().decode("utf-8"))
+        return json.loads(resp.read().decode("utf-8"))
 
+
+def to_announcements(payload: dict) -> list[Announcement]:
+    """원본 응답을 Announcement 목록으로 변환한다."""
     items = payload.get("data", [])
     announcements = []
     for item in items:
@@ -66,3 +70,8 @@ def fetch_announcements(service_key: str | None = None, count: int = 50,
             source=Source.KSTARTUP,
         ))
     return announcements
+
+
+def fetch_announcements(service_key: str | None = None, count: int = 50,
+                        page: int = 1) -> list[Announcement]:
+    return to_announcements(fetch_raw(service_key, count, page))
