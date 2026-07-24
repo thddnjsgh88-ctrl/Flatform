@@ -31,12 +31,24 @@ K-Startup API ─┼─→ Announcement ─→ parser.py ─→ EligibilityRules
 Python 3.11+ / 외부 의존성 없음 (표준 라이브러리만 사용).
 
 ```bash
-# 데모 (샘플 공고 8건 × 프로필 3명 판정 리포트)
+# 웹 앱 (브라우저에서 프로필 입력 → 자격 진단)
+python -m flatform.web
+# → http://127.0.0.1:8000 접속. --source bizinfo 로 실 API, --port 로 포트 변경
+
+# 데모 (샘플 공고 8건 × 프로필 3명 판정 리포트, 콘솔 출력)
 python -m flatform.demo --today 2026-07-19
 
 # 테스트
 python -m unittest discover -s tests
 ```
+
+### 웹 앱 화면
+
+`python -m flatform.web` 실행 후 브라우저에서 사업장 정보(지역·업종·업력·상시근로자·
+연매출·나이)를 입력하면, 지금 신청 가능한 공고를 **적합 → 판단보류 → 부적합 → 마감**
+순으로 정렬해 판정 사유와 마감 D-day와 함께 보여준다. 연매출·나이를 비워두면 해당 요건은
+`판단보류`로 표시되어 "이 정보를 입력하면 판정 가능"을 안내한다(프로필을 채울수록 정확해지는
+구조). 표준 라이브러리 `http.server` 기반이라 별도 설치 없이 실행된다.
 
 ## 실 API 연동 검증
 
