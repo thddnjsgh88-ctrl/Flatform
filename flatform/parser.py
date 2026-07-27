@@ -67,6 +67,18 @@ _TARGET_KEYWORDS = tuple(sorted(
 # "중소·중견기업", "중소‧중견", "중소, 중견" 등 → 중소기업·중견기업 둘 다로 해석
 _MID_LARGE = re.compile(r"중소\s*[·‧,]\s*중견")
 
+# 표준 업종(KSIC 대분류 근사). 정책 카테고리("신산업" 등)는 프로필과 매칭 불가하므로 제외.
+# 긴 표기 우선(교육서비스업이 서비스업보다 먼저) 매칭한다.
+_INDUSTRY_KEYWORDS = tuple(sorted((
+    "제조업", "건설업", "도소매업", "도매업", "소매업", "음식점업", "숙박업",
+    "운수업", "물류업", "정보통신업", "출판업", "방송업", "금융업", "보험업",
+    "부동산업", "임대업", "농업", "임업", "어업", "광업", "교육서비스업",
+    "보건업", "예술업", "스포츠업", "수리업", "전문서비스업", "과학기술서비스업",
+    "사업지원서비스업", "지식서비스업", "서비스업",
+), key=len, reverse=True))
+# 업종을 '자격 조건'으로 볼지 판별하는 근접 문맥 (단순 언급과 구분)
+_INDUSTRY_CONTEXT = re.compile(r"업종|영위|분야|업을|해당\s*업")
+
 
 def _apply_bound(rules: EligibilityRules, attr_min: str, attr_max: str,
                  value: float | int, direction: str, integer: bool) -> None:
@@ -141,4 +153,24 @@ def extract_eligibility(text: str) -> EligibilityRules:
             if t not in rules.target_types:
                 rules.target_types.append(t)
 
+    rules.required_industries = extract_industries(text)
     return rules
+
+
+def extract_industries(text: str) -> list[str]:
+    """'업종·영위·분야' 문맥 근처에 나오는 표준 업종만 대상 업종으로 해석한다.
+
+    단순 언급(예: '제조업 활성화를 위한')은 문맥어가 없으면 제외한다. 이미 잡은
+    긴 표기의 부분문자열(서비스업 ⊂ 교육서비스업)은 중복 태깅하지 않는다.
+    """
+    found: list[str] = []
+    for kw in _INDUSTRY_KEYWORDS:
+        start = 0
+        while (idx := text.find(kw, start)) != -1:
+            window = text[max(0, idx - 15): idx + len(kw) + 15]
+            if _INDUSTRY_CONTEXT.search(window):
+                if not any(kw in f for f in found):
+                    found.append(kw)
+                break
+            start = idx + 1
+    return found

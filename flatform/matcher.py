@@ -73,6 +73,17 @@ def _check_employees(profile: UserProfile, rules: EligibilityRules) -> RuleCheck
     return RuleCheck("상시근로자", True, f"상시근로자 {count}명 — 요건 충족")
 
 
+def _check_industry(profile: UserProfile, rules: EligibilityRules) -> RuleCheck | None:
+    if not rules.required_industries:
+        return None
+    # 대상 업종 키워드가 신청자 업종 표기에 포함되면 해당 (예: '제조업' ⊆ '제조업')
+    matched = [ind for ind in rules.required_industries if ind in profile.industry]
+    targets = ", ".join(rules.required_industries)
+    if matched:
+        return RuleCheck("업종", True, f"업종 {profile.industry} — 대상 업종({targets})에 해당")
+    return RuleCheck("업종", False, f"대상 업종은 {targets}이나 신청자 업종은 {profile.industry}")
+
+
 def _check_age(profile: UserProfile, rules: EligibilityRules) -> RuleCheck | None:
     if rules.min_age is None and rules.max_age is None:
         return None
@@ -136,6 +147,7 @@ def match(profile: UserProfile, announcement: Announcement,
         _check_revenue(profile, rules),
         _check_employees(profile, rules),
         _check_age(profile, rules),
+        _check_industry(profile, rules),
     ):
         if check is not None:
             checks.append(check)

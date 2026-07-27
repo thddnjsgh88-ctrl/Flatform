@@ -91,6 +91,24 @@ class TestMatch(unittest.TestCase):
         ann = make_announcement("사회적기업")
         self.assertEqual(match(social, ann, today=TODAY).verdict, Verdict.ELIGIBLE)
 
+    def test_industry_mismatch_ineligible(self):
+        ann = make_announcement("대구 지역 內 소재, 대상 업종이 제조업 영위 기업")
+        cafe = UserProfile(
+            name="카페", region="대구", industry="음식점업",
+            years_in_business=3, annual_revenue=None, employees=2,
+        )
+        result = match(cafe, ann, today=TODAY)
+        self.assertEqual(result.verdict, Verdict.INELIGIBLE)
+        self.assertTrue(any(c.name == "업종" for c in result.failed_checks))
+
+    def test_industry_match_eligible(self):
+        ann = make_announcement("대구 지역 內 소재, 대상 업종이 제조업 영위 기업")
+        factory = UserProfile(
+            name="공장", region="대구", industry="제조업",
+            years_in_business=5, annual_revenue=None, employees=3,
+        )
+        self.assertEqual(match(factory, ann, today=TODAY).verdict, Verdict.ELIGIBLE)
+
     def test_sort_order(self):
         anns = [
             make_announcement("경기도 관내 소재 기업"),                        # 부적합

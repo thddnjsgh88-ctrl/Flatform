@@ -54,10 +54,11 @@ class EligibilityRules:
     min_age: int | None = None                         # 대표자 나이 하한 (만)
     max_age: int | None = None                         # 대표자 나이 상한 (만)
     target_types: list[str] = field(default_factory=list)  # 소상공인/중소기업/예비창업자/청년
+    required_industries: list[str] = field(default_factory=list)  # 대상 업종 (제조업 등). 비면 제한 없음
 
     def is_empty(self) -> bool:
         return not any([
-            self.regions, self.target_types,
+            self.regions, self.target_types, self.required_industries,
             self.min_years is not None, self.max_years is not None,
             self.min_revenue is not None, self.max_revenue is not None,
             self.min_employees is not None, self.max_employees is not None,

@@ -1,6 +1,6 @@
 import unittest
 
-from flatform.parser import extract_eligibility, extract_regions
+from flatform.parser import extract_eligibility, extract_industries, extract_regions
 
 
 class TestRegionExtraction(unittest.TestCase):
@@ -69,6 +69,22 @@ class TestTargetTypes(unittest.TestCase):
 
     def test_empty_text(self):
         self.assertTrue(extract_eligibility("자세한 내용은 공고문 참조").is_empty())
+
+
+class TestIndustryExtraction(unittest.TestCase):
+    def test_industry_with_context(self):
+        self.assertEqual(extract_industries("대상 업종이 제조업 영위 기업"), ["제조업"])
+
+    def test_industry_without_context_ignored(self):
+        # 문맥어(업종/영위/분야) 없이 스쳐 지나가는 언급은 대상 업종으로 보지 않는다
+        self.assertEqual(extract_industries("제조업 활성화를 위한 지원사업 안내"), [])
+
+    def test_policy_category_not_matched(self):
+        # '신산업' 등 정책 카테고리는 표준 업종이 아니므로 추출하지 않는다
+        self.assertEqual(extract_industries("대구 5대 신산업 분야: 헬스케어, 로봇, 반도체"), [])
+
+    def test_longest_industry_wins(self):
+        self.assertEqual(extract_industries("대상 업종: 교육서비스업 영위 기관"), ["교육서비스업"])
 
 
 if __name__ == "__main__":
