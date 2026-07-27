@@ -312,12 +312,12 @@
       <div id="controls" class="controls" hidden>
         <div class="filters" id="verdictFilters"></div>
         <div class="filter-row">
-          <select id="catFilter" class="minisel"><option value="__all">전체 분야</option></select>
-          <select id="sortBy" class="minisel">
+          <select id="catFilter" class="minisel" aria-label="분야 필터"><option value="__all">전체 분야</option></select>
+          <select id="sortBy" class="minisel" aria-label="정렬 기준">
             <option value="recommend">추천순</option>
             <option value="deadline">마감 임박순</option>
           </select>
-          <span class="count" id="resultCount"></span>
+          <span class="count" id="resultCount" aria-live="polite"></span>
         </div>
       </div>
       <div id="results">
