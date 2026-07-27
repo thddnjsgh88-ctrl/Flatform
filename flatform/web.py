@@ -24,6 +24,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from .collectors import load_sample_announcements
+from .dedup import deduplicate
 from .enrich import match_with_document
 from .matcher import match_all
 from .models import Announcement, MatchResult, UserProfile
@@ -31,19 +32,42 @@ from .models import Announcement, MatchResult, UserProfile
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 
+_SOURCE_LABELS = {"bizinfo": "기업마당", "kstartup": "K-Startup"}
+
+
+def _fetch_one(source: str, count: int) -> list[Announcement]:
+    if source == "bizinfo":
+        from .collectors import bizinfo
+        return bizinfo.fetch_announcements(count=count)
+    from .collectors import kstartup
+    return kstartup.fetch_announcements(count=count)
+
+
 def _load_announcements(source: str, count: int) -> tuple[list[Announcement], str]:
-    """출처별 공고 로드. 실 API 실패 시 샘플로 자동 폴백한다."""
+    """출처별 공고 로드. 'all' 은 여러 소스를 합쳐 중복 제거한다. 실패 시 샘플 폴백."""
     if source == "samples":
         return load_sample_announcements(), "번들 샘플"
-    try:
-        if source == "bizinfo":
-            from .collectors import bizinfo
-            return bizinfo.fetch_announcements(count=count), "기업마당 API"
-        from .collectors import kstartup
-        return kstartup.fetch_announcements(count=count), "K-Startup API"
-    except Exception as exc:  # noqa: BLE001 - 실 API 미설정/네트워크 실패는 샘플로 폴백
-        print(f"⚠️  {source} 수집 실패({exc}). 샘플 공고로 폴백합니다.")
+
+    sources = ["bizinfo", "kstartup"] if source == "all" else [source]
+    collected: list[Announcement] = []
+    ok: list[str] = []
+    for src in sources:
+        try:
+            collected.extend(_fetch_one(src, count))
+            ok.append(_SOURCE_LABELS[src])
+        except Exception as exc:  # noqa: BLE001 - 실 API 미설정/네트워크 실패
+            print(f"⚠️  {src} 수집 실패({exc}).")
+
+    if not collected:
+        print("샘플 공고로 폴백합니다.")
         return load_sample_announcements(), "번들 샘플(폴백)"
+
+    deduped = deduplicate(collected)
+    label = "+".join(ok)
+    removed = len(collected) - len(deduped)
+    if removed:
+        label += f" (중복 {removed}건 제거, {len(deduped)}건)"
+    return deduped, label
 
 
 def _deadline_info(result: MatchResult, today: date) -> dict:
@@ -186,7 +210,8 @@ class Handler(BaseHTTPRequestHandler):
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Flatform 자격 판정 웹 앱")
-    parser.add_argument("--source", choices=["samples", "bizinfo", "kstartup"], default="samples")
+    parser.add_argument("--source", choices=["samples", "bizinfo", "kstartup", "all"],
+                        default="samples")
     parser.add_argument("--count", type=int, default=100)
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--host", default="127.0.0.1")

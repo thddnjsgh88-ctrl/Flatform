@@ -33,7 +33,10 @@ Python 3.11+ / 외부 의존성 없음 (표준 라이브러리만 사용).
 ```bash
 # 웹 앱 (브라우저에서 프로필 입력 → 자격 진단)
 python -m flatform.web
-# → http://127.0.0.1:8000 접속. --source bizinfo 로 실 API, --port 로 포트 변경
+# → http://127.0.0.1:8000 접속. --port 로 포트 변경
+#   --source bizinfo   기업마당 실 API
+#   --source kstartup  K-Startup 실 API
+#   --source all       두 소스 통합 + 중복 제거
 
 # 데모 (샘플 공고 8건 × 프로필 3명 판정 리포트, 콘솔 출력)
 python -m flatform.demo --today 2026-07-19
