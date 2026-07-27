@@ -27,6 +27,7 @@ class Announcement:
     category: str                    # 지원 분야 (금융, 기술, 판로 등)
     raw_eligibility: str             # 공고 원문의 지원자격 텍스트
     url: str = ""
+    doc_url: str = ""                # 첨부 공고문(HWP/PDF) 다운로드 URL (정밀 판정용)
     apply_start: date | None = None
     apply_end: date | None = None
     source: Source = Source.SAMPLE

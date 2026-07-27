@@ -133,6 +133,38 @@ def _check_target_types(profile: UserProfile, rules: EligibilityRules) -> list[R
     return checks
 
 
+def _pick(a, b, fn):
+    """둘 다 값이 있으면 fn 으로 고르고, 하나만 있으면 그 값을 쓴다."""
+    if a is None:
+        return b
+    if b is None:
+        return a
+    return fn(a, b)
+
+
+def merge_rules(base: EligibilityRules, extra: EligibilityRules) -> EligibilityRules:
+    """API 요건(base)과 공고문 요건(extra)을 병합한다.
+
+    - 하한(min_*)은 더 큰 값, 상한(max_*)은 더 작은 값으로 '더 엄격하게' 취한다.
+    - 지역·업종은 API 값이 있으면 유지하고 없을 때만 공고문 값으로 채운다
+      (공고문 지역 추출의 오탐이 자격을 부당히 넓히지 않도록 보수적으로).
+    - 대상유형은 합집합(정보성이라 넓혀도 판정에 해롭지 않음).
+    """
+    return EligibilityRules(
+        regions=base.regions or extra.regions,
+        required_industries=base.required_industries or extra.required_industries,
+        target_types=list(dict.fromkeys(base.target_types + extra.target_types)),
+        min_years=_pick(base.min_years, extra.min_years, max),
+        max_years=_pick(base.max_years, extra.max_years, min),
+        min_revenue=_pick(base.min_revenue, extra.min_revenue, max),
+        max_revenue=_pick(base.max_revenue, extra.max_revenue, min),
+        min_employees=_pick(base.min_employees, extra.min_employees, max),
+        max_employees=_pick(base.max_employees, extra.max_employees, min),
+        min_age=_pick(base.min_age, extra.min_age, max),
+        max_age=_pick(base.max_age, extra.max_age, min),
+    )
+
+
 def match(profile: UserProfile, announcement: Announcement,
           rules: EligibilityRules | None = None,
           today: date | None = None) -> MatchResult:
