@@ -77,6 +77,29 @@ python -m flatform.validate --source samples    # 키 없이 리포트 형식 �
 원본 응답은 `data/raw/` 에 저장되고, 요건 항목별 추출률과 미추출 공고 예시가
 출력된다. 필드 매핑이 어긋나면 실제 필드명 목록을 경고와 함께 보여준다.
 
+## v2 · 공고문 파싱 (매출·근로자 등 정밀 자격)
+
+실 API 검증 결과, 매출·상시근로자·나이 같은 **숫자 자격은 API 텍스트에 거의 없고
+공고문 첨부파일(HWP/PDF) 안에** 있음이 확인됐다. `flatform.docparse` 는 공고문
+파일에서 본문 텍스트를 뽑아 기존 파서에 넣어 이 숫자 자격을 추출한다.
+
+```bash
+pip install pypdf   # PDF 처리에 필요 (.hwpx/.txt 는 불필요)
+
+python -m flatform.docparse 공고문.pdf          # 자격요건 추출 결과 출력
+python -m flatform.docparse 공고문.hwpx --text  # 원문 텍스트도 함께 출력
+```
+
+| 형식 | 처리 방식 | 추가 설치 |
+|---|---|---|
+| `.pdf` | pypdf | `pip install pypdf` |
+| `.hwpx` | 표준 라이브러리 (zip+xml) | 없음 |
+| `.txt` | 표준 라이브러리 | 없음 |
+| `.hwp` (구형) | LibreOffice 로 PDF 변환 후 추출 | [LibreOffice](https://ko.libreoffice.org/download/) |
+
+`docparse` 는 "문서 → 텍스트"만 담당하고, 자격요건 추출은 v1 파서를 그대로 쓴다.
+공고문 자동 다운로드(첨부 URL 수집)는 후속 과제이며, 현재는 내려받은 파일을 직접 넣는다.
+
 ## 판정 로직 원칙
 
 - **오판보다 보류**: 파서가 확신 못 하는 요건은 추출하지 않고, 프로필 정보가 부족한
