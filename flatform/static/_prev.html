@@ -484,5 +484,10 @@
       }
     });
   </script>
-</body>
+<script>window.addEventListener('load',()=>{
+  const f=document.getElementById('form');
+  f.region.value='부산'; f.industry.value='정보통신업';
+  f.years_in_business.value='0'; f.employees.value='0'; f.age.value='45';
+  f.dispatchEvent(new Event('submit',{cancelable:true}));
+});</script></body>
 </html>
