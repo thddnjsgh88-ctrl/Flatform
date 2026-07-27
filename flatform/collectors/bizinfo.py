@@ -52,6 +52,18 @@ def fetch_raw(api_key: str | None = None, count: int = 50,
         return json.loads(resp.read().decode("utf-8"))
 
 
+# 자격요건 추출에 쓰는 필드 (우선순위 순).
+#   trgetNm  = 지원대상 (자격조건이 실제로 적힌 핵심 필드)
+#   hashtags = #서울 #소상공인 등 대상유형·지역 태그
+#   bsnsSumryCn = 사업요약 (보조)
+_ELIGIBILITY_FIELDS = ("trgetNm", "hashtags", "bsnsSumryCn")
+
+
+def _eligibility_text(item: dict) -> str:
+    parts = [_strip_html(str(item.get(k, ""))) for k in _ELIGIBILITY_FIELDS]
+    return " / ".join(p for p in parts if p)
+
+
 def to_announcements(payload: dict | list) -> list[Announcement]:
     """원본 응답을 Announcement 목록으로 변환한다."""
     items = payload.get("jsonArray", []) if isinstance(payload, dict) else payload
@@ -63,7 +75,7 @@ def to_announcements(payload: dict | list) -> list[Announcement]:
             title=_strip_html(item.get("pblancNm", "")),
             organ=item.get("jrsdInsttNm", ""),
             category=item.get("pldirSportRealmLclasCodeNm", ""),
-            raw_eligibility=_strip_html(item.get("bsnsSumryCn", "")),
+            raw_eligibility=_eligibility_text(item),
             url=urllib.parse.urljoin("https://www.bizinfo.go.kr", item.get("pblancUrl", "")),
             apply_start=start,
             apply_end=end,
