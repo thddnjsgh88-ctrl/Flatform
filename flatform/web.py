@@ -151,6 +151,9 @@ class Handler(BaseHTTPRequestHandler):
             self._send_file(STATIC_DIR / "index.html", "text/html; charset=utf-8")
         elif self.path == "/api/meta":
             self._send_json({"count": len(self.announcements), "source": self.source_label})
+        elif self.path == "/favicon.ico":
+            self.send_response(204)      # 파비콘은 HTML 인라인으로 제공 — 빈 응답으로 404 방지
+            self.end_headers()
         else:
             self.send_error(404, "Not Found")
 
