@@ -24,6 +24,7 @@ import subprocess
 import tempfile
 import xml.etree.ElementTree as ET
 import zipfile
+import zlib
 from pathlib import Path
 
 from .models import EligibilityRules
@@ -101,6 +102,92 @@ def _strip_xml(s: str) -> str:
     return re.sub(r"<[^>]+>", " ", s)
 
 
+# PARA_TEXT 레코드 태그 (HWPTAG_BEGIN 0x10 + 51)
+_HWPTAG_PARA_TEXT = 67
+# UTF-16 본문 중 컨트롤 문자: 아래 코드들은 확장/인라인 컨트롤로 8 wchar(16바이트)를 차지한다.
+_HWP_EXT_CONTROLS = frozenset(
+    {1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23}
+)
+
+
+def _hwp_text_run(rec: bytes) -> str:
+    """PARA_TEXT 레코드(UTF-16LE + 컨트롤 문자)에서 본문 글자만 뽑는다."""
+    out: list[str] = []
+    i, n = 0, len(rec)
+    while i + 2 <= n:
+        code = int.from_bytes(rec[i:i + 2], "little")
+        if code >= 32:
+            out.append(chr(code))
+            i += 2
+        elif code in (10, 13):          # 줄바꿈/문단 끝
+            out.append("\n")
+            i += 2
+        elif code in _HWP_EXT_CONTROLS:  # 확장/인라인 컨트롤 = 8 wchar
+            i += 16
+        else:                            # 0, 24~31: 문자 컨트롤 = 1 wchar
+            i += 2
+    return "".join(out)
+
+
+def _hwp_records_to_text(data: bytes) -> str:
+    """Section 스트림(압축 해제된 레코드 열)에서 PARA_TEXT 본문을 모은다."""
+    out: list[str] = []
+    i, n = 0, len(data)
+    while i + 4 <= n:
+        header = int.from_bytes(data[i:i + 4], "little")
+        i += 4
+        tag_id = header & 0x3FF
+        size = (header >> 20) & 0xFFF
+        if size == 0xFFF:               # 확장 크기: 다음 4바이트
+            size = int.from_bytes(data[i:i + 4], "little")
+            i += 4
+        rec = data[i:i + size]
+        i += size
+        if tag_id == _HWPTAG_PARA_TEXT:
+            out.append(_hwp_text_run(rec))
+    return "\n".join(out)
+
+
+def _extract_hwp_binary(path: Path) -> str | None:
+    """구형 HWP 5.0(OLE 바이너리)을 olefile 로 직접 파싱한다. LibreOffice 불필요.
+
+    BodyText/SectionN 스트림(FileHeader 플래그에 따라 zlib raw-deflate 압축)을
+    해제해 PARA_TEXT 레코드의 UTF-16LE 본문을 추출한다. olefile 이 없거나
+    OLE 형식이 아니면 None 을 돌려 상위에서 다른 방법으로 폴백하게 한다.
+    """
+    try:
+        import olefile
+    except ImportError:
+        return None
+    if not olefile.isOleFile(str(path)):
+        return None
+    ole = olefile.OleFileIO(str(path))
+    try:
+        header = ole.openstream("FileHeader").read()
+        compressed = bool(header[36] & 1) if len(header) > 36 else True
+        sections = sorted(
+            e for e in ole.listdir()
+            if len(e) == 2 and e[0] == "BodyText" and e[1].lower().startswith("section")
+        )
+        texts: list[str] = []
+        for entry in sections:
+            data = ole.openstream(entry).read()
+            if compressed:
+                data = zlib.decompress(data, -15)
+            texts.append(_hwp_records_to_text(data))
+        return "\n".join(texts)
+    finally:
+        ole.close()
+
+
+def _extract_hwp(path: Path) -> str:
+    """구형 .hwp: olefile 로 직접 파싱, 실패하면 LibreOffice 변환으로 폴백."""
+    text = _extract_hwp_binary(path)
+    if text and text.strip():
+        return text
+    return _extract_hwp_via_soffice(path)
+
+
 def _extract_hwp_via_soffice(path: Path) -> str:
     """구형 HWP(바이너리)는 LibreOffice 로 PDF 변환 후 추출한다."""
     soffice = shutil.which("soffice") or shutil.which("libreoffice")
@@ -133,7 +220,7 @@ def extract_text(path: str | Path) -> str:
     if suffix == ".hwpx":
         return _extract_hwpx(path)
     if suffix == ".hwp":
-        return _extract_hwp_via_soffice(path)
+        return _extract_hwp(path)
     raise UnsupportedFormat(f"지원하지 않는 형식입니다: {suffix} (지원: .pdf .hwpx .hwp .txt)")
 
 
