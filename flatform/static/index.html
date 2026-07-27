@@ -388,7 +388,11 @@
     function renderResults(results) {
       const box = document.getElementById("results");
       if (!results.length) {
-        box.innerHTML = `<div class="card placeholder"><span class="emoji">🗂️</span><div>해당하는 공고가 없습니다.<br>조건을 조정해 다시 진단해보세요.</div></div>`;
+        // 결과 자체가 없는 경우와, 결과는 있으나 필터로 가려진 경우를 구분해 안내
+        const msg = allResults.length
+          ? `선택한 필터에 해당하는 공고가 없어요.<br>위에서 <b>판정·분야 필터</b>를 조정해보세요.`
+          : `조건에 맞는 공고를 찾지 못했어요.<br>입력값을 바꿔 다시 진단해보세요.`;
+        box.innerHTML = `<div class="card placeholder"><span class="emoji">🗂️</span><div>${msg}</div></div>`;
         return;
       }
       box.innerHTML = results.map(resultCard).join("");
@@ -475,8 +479,13 @@
         const data = await res.json();
         if (data.error) { alert(data.error); document.getElementById("results").innerHTML = ""; return; }
         allResults = data.results;
-        renderControls(data.summary);
-        applyFilters();
+        if (!allResults.length) {
+          document.getElementById("controls").hidden = true;
+          renderResults([]);            // '결과 없음' 안내 (필터 바는 숨김)
+        } else {
+          renderControls(data.summary);
+          applyFilters();
+        }
       } catch (err) {
         alert("진단 중 오류가 발생했습니다: " + err);
       } finally {
