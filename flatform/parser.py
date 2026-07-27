@@ -35,7 +35,12 @@ REGION_ALIASES = {
 _REGION_PATTERN = re.compile(
     "(" + "|".join(sorted(REGION_ALIASES, key=len, reverse=True)) + ")"
 )
-_REGION_CONTEXT = re.compile(r"소재|관내|지역\s*내|소재지|위치한")
+_REGION_CONTEXT = re.compile(r"소재|관내|지역\s*내|소재지|위치|內")
+# 지역명 바로 뒤에 오면 '기관명'으로 보고 지역 자격에서 제외 (예: 경북대학교, 부산경제진흥원)
+_INSTITUTION_SUFFIX = re.compile(
+    r"^\s*(?:대학|은행|청|원|센터|공사|재단|병원|과학|테크노|경제|산업|"
+    r"신용보증|보증|진흥|상공|연구|시청|도청|군청|구청)"
+)
 
 _NUM = r"(\d+(?:\.\d+)?)"
 
@@ -56,9 +61,11 @@ _AGE = re.compile(r"만\s*(\d+)\s*세\s*(이하|미만|이상|초과)")
 # 일반 대상유형 + 특수 기업유형(SPECIAL_TARGET_TYPES). 긴 표기가 먼저 매칭되도록 정렬한다.
 # "예비사회적기업"이 "사회적기업"보다 먼저 잡혀야 중복 태깅을 피할 수 있다.
 _TARGET_KEYWORDS = tuple(sorted(
-    ("소상공인", "중소기업", "예비창업자", "청년", *SPECIAL_TARGET_TYPES),
+    ("소상공인", "중소기업", "중견기업", "예비창업자", "청년", *SPECIAL_TARGET_TYPES),
     key=len, reverse=True,
 ))
+# "중소·중견기업", "중소‧중견", "중소, 중견" 등 → 중소기업·중견기업 둘 다로 해석
+_MID_LARGE = re.compile(r"중소\s*[·‧,]\s*중견")
 
 
 def _apply_bound(rules: EligibilityRules, attr_min: str, attr_max: str,
@@ -83,13 +90,20 @@ def _apply_bound(rules: EligibilityRules, attr_min: str, attr_max: str,
 
 
 def extract_regions(text: str) -> list[str]:
-    """'소재'류 문맥이 있는 경우에만 지역 제한으로 해석한다. '전국'이 명시되면 제한 없음."""
+    """지역명 근처(±20자)에 '소재'류 문맥이 있을 때만 지역 자격으로 해석한다.
+
+    기관명(경북대학교 등)에서 온 지역명은 오탐이므로, 지역명 바로 뒤가 기관 접미사면
+    제외한다. '전국'이 명시되면 제한 없음으로 본다.
+    """
     if "전국" in text:
-        return []
-    if not _REGION_CONTEXT.search(text):
         return []
     found: list[str] = []
     for match in _REGION_PATTERN.finditer(text):
+        if _INSTITUTION_SUFFIX.match(text[match.end():match.end() + 5]):
+            continue
+        window = text[max(0, match.start() - 20): match.end() + 20]
+        if not _REGION_CONTEXT.search(window):
+            continue
         normalized = REGION_ALIASES[match.group(1)]
         if normalized not in found:
             found.append(normalized)
@@ -120,5 +134,11 @@ def extract_eligibility(text: str) -> EligibilityRules:
     for keyword in _TARGET_KEYWORDS:
         if keyword in text and not any(keyword in t for t in rules.target_types):
             rules.target_types.append(keyword)
+
+    # "중소·중견기업"은 중소기업도 포함하는 표기이므로 둘 다 인정
+    if _MID_LARGE.search(text):
+        for t in ("중소기업", "중견기업"):
+            if t not in rules.target_types:
+                rules.target_types.append(t)
 
     return rules

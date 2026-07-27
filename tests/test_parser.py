@@ -18,6 +18,11 @@ class TestRegionExtraction(unittest.TestCase):
         # '소재'류 문맥 없이 등장한 지역명은 제한으로 해석하지 않는다
         self.assertEqual(extract_regions("부산 지역경제 활성화를 위한 사업"), [])
 
+    def test_institution_name_not_treated_as_region(self):
+        # 기관명(경북대학교)의 지역명은 오탐이므로 자격 지역으로 잡지 않는다
+        text = "경북대학교 산학협력단은 대구 지역 內 소재하는 중소기업을 모집한다"
+        self.assertEqual(extract_regions(text), ["대구"])
+
 
 class TestNumericExtraction(unittest.TestCase):
     def test_years_max(self):
@@ -55,6 +60,12 @@ class TestTargetTypes(unittest.TestCase):
         rules = extract_eligibility("예비창업자 및 창업 3년 이내 소상공인")
         self.assertIn("예비창업자", rules.target_types)
         self.assertIn("소상공인", rules.target_types)
+
+    def test_mid_large_compound(self):
+        # "중소·중견기업"은 중소기업·중견기업 둘 다로 인식
+        rules = extract_eligibility("대구 지역 內 소재하는 중소·중견기업")
+        self.assertIn("중소기업", rules.target_types)
+        self.assertIn("중견기업", rules.target_types)
 
     def test_empty_text(self):
         self.assertTrue(extract_eligibility("자세한 내용은 공고문 참조").is_empty())
