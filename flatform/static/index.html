@@ -169,7 +169,8 @@
     @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
     .r-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-    .r-title { font-weight: 700; font-size: 15px; line-height: 1.4; }
+    .r-top > div:first-child { min-width: 0; }  /* 긴 제목이 배지를 밀어내지 않게 */
+    .r-title { font-weight: 700; font-size: 15px; line-height: 1.4; word-break: keep-all; overflow-wrap: anywhere; }
     .r-title a { color: var(--ink); text-decoration: none; }
     .r-title a:hover { color: var(--brand); text-decoration: underline; }
     .r-sub { font-size: 12px; color: var(--muted); margin-top: 5px; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
