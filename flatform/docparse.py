@@ -6,7 +6,7 @@ API 요약 텍스트에는 그 숫자가 없어서 못 뽑았을 뿐이므로, �
 
 지원 형식:
     .txt   표준 라이브러리
-    .pdf   pypdf (pip install pypdf)
+    .pdf   PyMuPDF(권장) 또는 pypdf
     .hwpx  표준 라이브러리 (zip + xml)
     .hwp   LibreOffice(soffice)로 pdf 변환 후 추출 — soffice 설치 필요
 
@@ -43,15 +43,36 @@ def _extract_txt(path: Path) -> str:
     return path.read_text(encoding="utf-8", errors="ignore")
 
 
-def _extract_pdf(path: Path) -> str:
+def _extract_pdf_pymupdf(path: Path) -> str | None:
+    """PyMuPDF(fitz). 한글 CID 폰트 인코딩을 pypdf 보다 잘 처리한다. 없으면 None."""
+    try:
+        import fitz
+    except ImportError:
+        return None
+    with fitz.open(str(path)) as doc:
+        return "\n".join(page.get_text() for page in doc)
+
+
+def _extract_pdf_pypdf(path: Path) -> str | None:
     try:
         from pypdf import PdfReader
-    except ImportError as exc:  # 사용자 안내
-        raise UnsupportedFormat(
-            "PDF 추출에는 pypdf 가 필요합니다. 먼저 실행하세요:  pip install pypdf"
-        ) from exc
+    except ImportError:
+        return None
     reader = PdfReader(str(path))
     return "\n".join(page.extract_text() or "" for page in reader.pages)
+
+
+def _extract_pdf(path: Path) -> str:
+    # 한글 공고문은 PyMuPDF 가 인코딩 처리가 우수해 우선 사용하고, 없으면 pypdf 로 폴백한다.
+    for extractor in (_extract_pdf_pymupdf, _extract_pdf_pypdf):
+        text = extractor(path)
+        if text and text.strip():
+            return text
+    raise UnsupportedFormat(
+        "PDF 추출 라이브러리가 필요합니다. 다음 중 하나를 설치하세요:\n"
+        "  pip install pymupdf   (권장, 한글 처리 우수)\n"
+        "  pip install pypdf"
+    )
 
 
 def _extract_hwpx(path: Path) -> str:
