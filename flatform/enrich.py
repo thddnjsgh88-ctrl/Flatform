@@ -25,6 +25,8 @@ from .parser import extract_eligibility
 CACHE_DIR = Path(tempfile.gettempdir()) / "flatform_docs"
 
 _UA = "Mozilla/5.0 (compatible; FlatformBot/0.1)"
+# 공고문 첨부 크기 상한. 과대 응답으로 인한 서버 메모리 고갈을 방지한다.
+MAX_DOWNLOAD_BYTES = 25 * 1024 * 1024
 _SUFFIX_BY_CONTENT = {
     b"%PDF": ".pdf",
     b"PK\x03\x04": ".hwpx",   # HWPX(zip). 일반 zip 일 수도 있으나 공고문 맥락에선 hwpx 로 시도
@@ -51,7 +53,9 @@ def download_document(url: str, cache_key: str, cache_dir: Path = CACHE_DIR) -> 
         return existing[0]
     req = urllib.request.Request(url, headers={"User-Agent": _UA})
     with urllib.request.urlopen(req, timeout=30) as resp:
-        data = resp.read()
+        data = resp.read(MAX_DOWNLOAD_BYTES + 1)  # 상한 +1 만 읽어 초과 여부 판별
+    if len(data) > MAX_DOWNLOAD_BYTES:
+        raise ValueError(f"공고문이 너무 큽니다(>{MAX_DOWNLOAD_BYTES // (1024 * 1024)}MB).")
     path = cache_dir / f"{cache_key}{_guess_suffix(data[:8], url)}"
     path.write_bytes(data)
     return path
