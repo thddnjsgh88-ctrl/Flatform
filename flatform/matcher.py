@@ -11,6 +11,7 @@ from __future__ import annotations
 from datetime import date
 
 from .models import (
+    SPECIAL_TARGET_TYPES,
     Announcement,
     EligibilityRules,
     MatchResult,
@@ -106,6 +107,18 @@ def _check_target_types(profile: UserProfile, rules: EligibilityRules) -> list[R
                 checks.append(RuleCheck(
                     "예비창업자", False,
                     f"예비창업자 대상 공고이나 이미 창업 {profile.years_in_business:g}년차"))
+
+    # 특수 기업유형(사회적기업·마을기업 등) 전용 사업.
+    # 사용자가 해당 특성을 보유했다고 밝히지 않았으면, 잘못 '적합' 처리하지 않도록
+    # '판단보류'로 두고 확인을 유도한다(거짓 적합 방지).
+    for special in SPECIAL_TARGET_TYPES:
+        if special in rules.target_types:
+            if special in profile.business_traits:
+                checks.append(RuleCheck(special, True, f"{special} 보유 — 대상 해당"))
+            else:
+                checks.append(RuleCheck(
+                    special, None,
+                    f"{special} 전용 사업 — 해당 여부 확인 필요"))
     return checks
 
 

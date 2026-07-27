@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 
-from .models import EligibilityRules
+from .models import SPECIAL_TARGET_TYPES, EligibilityRules
 
 # 17개 시도. 긴 표기를 짧은 표준 표기로 정규화한다.
 REGION_ALIASES = {
@@ -53,7 +53,12 @@ _EMPLOYEES = re.compile(r"상시\s*근로자(?:\s*수)?\s*(\d+)\s*(?:인|명)\s*
 # 나이: "만 39세 이하", "만 19세 이상 39세 이하"
 _AGE = re.compile(r"만\s*(\d+)\s*세\s*(이하|미만|이상|초과)")
 
-_TARGET_KEYWORDS = ("소상공인", "중소기업", "예비창업자", "청년")
+# 일반 대상유형 + 특수 기업유형(SPECIAL_TARGET_TYPES). 긴 표기가 먼저 매칭되도록 정렬한다.
+# "예비사회적기업"이 "사회적기업"보다 먼저 잡혀야 중복 태깅을 피할 수 있다.
+_TARGET_KEYWORDS = tuple(sorted(
+    ("소상공인", "중소기업", "예비창업자", "청년", *SPECIAL_TARGET_TYPES),
+    key=len, reverse=True,
+))
 
 
 def _apply_bound(rules: EligibilityRules, attr_min: str, attr_max: str,
@@ -110,8 +115,10 @@ def extract_eligibility(text: str) -> EligibilityRules:
     for m in _AGE.finditer(text):
         _apply_bound(rules, "min_age", "max_age", int(m.group(1)), m.group(2), integer=True)
 
+    # 긴 표기부터 검사하고, 이미 잡은 표기의 부분문자열은 건너뛴다
+    # (예: "예비사회적기업"을 잡았으면 "사회적기업"은 중복 태깅하지 않음).
     for keyword in _TARGET_KEYWORDS:
-        if keyword in text:
+        if keyword in text and not any(keyword in t for t in rules.target_types):
             rules.target_types.append(keyword)
 
     return rules

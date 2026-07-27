@@ -75,6 +75,7 @@ def _build_profile(payload: dict) -> UserProfile:
             return None
         return int(value)
 
+    traits = payload.get("business_traits") or []
     return UserProfile(
         name=str(payload.get("name") or "익명").strip(),
         region=str(payload["region"]).strip(),
@@ -83,6 +84,7 @@ def _build_profile(payload: dict) -> UserProfile:
         annual_revenue=_opt_int(payload.get("annual_revenue")),
         employees=int(payload["employees"]),
         age=_opt_int(payload.get("age")),
+        business_traits=[str(t) for t in traits],
     )
 
 

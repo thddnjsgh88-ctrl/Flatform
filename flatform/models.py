@@ -70,6 +70,13 @@ MANUFACTURING_LIKE_INDUSTRIES = ("제조", "건설", "운수", "광업")
 SMALL_BUSINESS_EMPLOYEE_LIMIT_DEFAULT = 5
 SMALL_BUSINESS_EMPLOYEE_LIMIT_MANUFACTURING = 10
 
+# 특수 기업 특성 대상 사업 (해당 인증/자격이 없으면 신청 불가한 전용 사업).
+# 사용자 프로필의 business_traits 와 대조해 전용 사업 여부를 판정한다.
+SPECIAL_TARGET_TYPES = (
+    "사회적기업", "예비사회적기업", "마을기업", "장애인기업",
+    "여성기업", "협동조합", "자활기업", "1인창조기업", "소셜벤처",
+)
+
 
 @dataclass
 class UserProfile:
@@ -80,6 +87,7 @@ class UserProfile:
     annual_revenue: int | None       # 연 매출 (원). 모르면 None
     employees: int                   # 상시근로자 수
     age: int | None = None           # 대표자 나이 (만)
+    business_traits: list[str] = field(default_factory=list)  # 사회적기업/여성기업 등 보유 특성
 
     @property
     def is_pre_startup(self) -> bool:

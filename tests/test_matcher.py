@@ -75,6 +75,22 @@ class TestMatch(unittest.TestCase):
         ann = make_announcement("전국의 예비창업자 및 창업 후 3년 이내 기업")
         self.assertEqual(match(SEOUL_CAFE, ann, today=TODAY).verdict, Verdict.ELIGIBLE)
 
+    def test_special_target_without_trait_is_unknown(self):
+        # 사회적기업 전용 사업 → 일반 소상공인은 '적합'이 아니라 '판단보류'
+        ann = make_announcement("사회적기업")
+        result = match(SEOUL_CAFE, ann, today=TODAY)
+        self.assertEqual(result.verdict, Verdict.UNKNOWN)
+        self.assertTrue(any("사회적기업" in c.reason for c in result.unknown_checks))
+
+    def test_special_target_with_trait_is_eligible(self):
+        social = UserProfile(
+            name="사회적", region="서울", industry="서비스업",
+            years_in_business=2, annual_revenue=100_000_000, employees=3,
+            business_traits=["사회적기업"],
+        )
+        ann = make_announcement("사회적기업")
+        self.assertEqual(match(social, ann, today=TODAY).verdict, Verdict.ELIGIBLE)
+
     def test_sort_order(self):
         anns = [
             make_announcement("경기도 관내 소재 기업"),                        # 부적합

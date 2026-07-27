@@ -48,6 +48,9 @@
     }
     button:hover { filter: brightness(1.05); }
     .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .traits { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; margin-top: 6px; }
+    .cb { display: flex; align-items: center; gap: 6px; font-weight: 400; margin: 0; font-size: 13px; }
+    .cb input { width: auto; }
     .meta { font-size: 12px; color: var(--muted); margin-top: 14px; }
 
     .summary { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
@@ -146,6 +149,16 @@
         </div>
       </div>
 
+      <label>기업 특성 <span class="hint">(해당되면 체크, 선택)</span></label>
+      <div class="traits">
+        <label class="cb"><input type="checkbox" name="trait" value="사회적기업"> 사회적기업</label>
+        <label class="cb"><input type="checkbox" name="trait" value="여성기업"> 여성기업</label>
+        <label class="cb"><input type="checkbox" name="trait" value="장애인기업"> 장애인기업</label>
+        <label class="cb"><input type="checkbox" name="trait" value="마을기업"> 마을기업</label>
+        <label class="cb"><input type="checkbox" name="trait" value="협동조합"> 협동조합</label>
+        <label class="cb"><input type="checkbox" name="trait" value="1인창조기업"> 1인창조기업</label>
+      </div>
+
       <button type="submit">지원사업 진단하기</button>
       <p class="meta" id="meta">공고 정보를 불러오는 중…</p>
     </form>
@@ -215,6 +228,7 @@
       e.preventDefault();
       const f = e.target;
       const manwon = f.annual_revenue_man.value;
+      const traits = Array.from(f.querySelectorAll('input[name="trait"]:checked')).map(c => c.value);
       const payload = {
         name: f.name.value,
         region: f.region.value,
@@ -223,6 +237,7 @@
         employees: f.employees.value,
         annual_revenue: manwon === "" ? null : Math.round(Number(manwon) * 10000),
         age: f.age.value === "" ? null : f.age.value,
+        business_traits: traits,
       };
       const btn = f.querySelector("button");
       btn.disabled = true; btn.textContent = "진단 중…";
