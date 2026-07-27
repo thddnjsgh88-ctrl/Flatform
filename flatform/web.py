@@ -24,6 +24,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from .collectors import load_sample_announcements
+from .enrich import match_with_document
 from .matcher import match_all
 from .models import Announcement, MatchResult, UserProfile
 
@@ -53,13 +54,16 @@ def _deadline_info(result: MatchResult, today: date) -> dict:
     return {"label": end.isoformat(), "d_day": days}
 
 
-def _serialize(result: MatchResult, today: date) -> dict:
+def _serialize(result: MatchResult, today: date, precise: bool = False) -> dict:
     ann = result.announcement
     return {
+        "id": ann.id,
         "title": ann.title,
         "organ": ann.organ,
         "category": ann.category,
         "url": ann.url,
+        "has_doc": bool(ann.doc_url),   # 공고문 정밀 진단 가능 여부
+        "precise": precise,             # 공고문까지 반영한 판정인지
         "verdict": result.verdict.value,
         "deadline": _deadline_info(result, today),
         "failed": [c.reason for c in result.failed_checks],
@@ -91,6 +95,7 @@ def _build_profile(payload: dict) -> UserProfile:
 class Handler(BaseHTTPRequestHandler):
     def __init__(self, *args, announcements, source_label, **kwargs):
         self.announcements = announcements
+        self.by_id = {a.id: a for a in announcements}
         self.source_label = source_label
         super().__init__(*args, **kwargs)
 
@@ -126,12 +131,20 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error(404, "Not Found")
 
     def do_POST(self) -> None:
-        if self.path != "/api/match":
+        if self.path == "/api/match":
+            self._handle_match()
+        elif self.path == "/api/precise":
+            self._handle_precise()
+        else:
             self.send_error(404, "Not Found")
-            return
+
+    def _read_json(self) -> dict:
         length = int(self.headers.get("Content-Length", 0))
+        return json.loads(self.rfile.read(length).decode("utf-8"))
+
+    def _handle_match(self) -> None:
         try:
-            payload = json.loads(self.rfile.read(length).decode("utf-8"))
+            payload = self._read_json()
             profile = _build_profile(payload)
         except (ValueError, KeyError) as exc:
             self._send_json({"error": f"입력값 오류: {exc}"}, status=400)
@@ -147,6 +160,28 @@ class Handler(BaseHTTPRequestHandler):
             "summary": summary,
             "results": [_serialize(r, today) for r in results],
         })
+
+    def _handle_precise(self) -> None:
+        """공고 하나를 공고문(첨부)까지 내려받아 정밀 판정한다(온디맨드)."""
+        try:
+            payload = self._read_json()
+            profile = _build_profile(payload)
+            ann = self.by_id[str(payload["announcement_id"])]
+        except (ValueError, KeyError) as exc:
+            self._send_json({"error": f"입력값 오류: {exc}"}, status=400)
+            return
+        if not ann.doc_url:
+            self._send_json({"error": "이 공고는 첨부 공고문이 없어 정밀 진단을 할 수 없습니다."},
+                            status=400)
+            return
+
+        today = date.today()
+        try:
+            result = match_with_document(profile, ann, today=today)
+        except Exception as exc:  # noqa: BLE001 - 다운로드/파싱 실패
+            self._send_json({"error": f"공고문 처리 실패: {exc}"}, status=502)
+            return
+        self._send_json({"result": _serialize(result, today, precise=True)})
 
 
 def main() -> None:

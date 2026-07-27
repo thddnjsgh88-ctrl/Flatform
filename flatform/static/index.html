@@ -86,6 +86,16 @@
     .reasons li.o::before { content: "✓"; position: absolute; left: 0; color: var(--ok-ink); }
     .empty { color: var(--muted); text-align: center; padding: 48px 0; }
     a { color: var(--brand); }
+    .precise-btn {
+      margin-top: 12px; width: auto; padding: 8px 14px; font-size: 13px; font-weight: 600;
+      background: #eef2ff; color: var(--brand); border: 1px solid #c7d2fe; border-radius: 8px; cursor: pointer;
+    }
+    .precise-btn:hover { background: #e0e7ff; }
+    .precise-btn:disabled { opacity: 0.6; cursor: default; }
+    .ptag {
+      font-size: 11px; font-weight: 700; color: var(--ok-ink); background: var(--ok-bg);
+      padding: 2px 7px; border-radius: 5px; margin-left: 6px; white-space: nowrap;
+    }
   </style>
 </head>
 <body>
@@ -197,32 +207,62 @@
     function renderResults(results) {
       const box = document.getElementById("results");
       if (!results.length) { box.innerHTML = `<div class="card empty">해당하는 공고가 없습니다.</div>`; return; }
-      box.innerHTML = results.map(r => {
-        const c = VERDICT_CLASS[r.verdict] || "closed";
-        let reasons = "";
-        if (r.failed.length) reasons += r.failed.map(t => `<li class="x">${esc(t)}</li>`).join("");
-        if (r.unknown.length) reasons += r.unknown.map(t => `<li class="q">${esc(t)}</li>`).join("");
-        if (r.verdict === "적합" && r.passed.length)
-          reasons += r.passed.map(t => `<li class="o">${esc(t)}</li>`).join("");
-        const title = r.url
-          ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a>` : esc(r.title);
-        return `<div class="result ${c}">
+      box.innerHTML = results.map(resultCard).join("");
+    }
+
+    function resultCard(r) {
+      const c = VERDICT_CLASS[r.verdict] || "closed";
+      let reasons = "";
+      if (r.failed.length) reasons += r.failed.map(t => `<li class="x">${esc(t)}</li>`).join("");
+      if (r.unknown.length) reasons += r.unknown.map(t => `<li class="q">${esc(t)}</li>`).join("");
+      if (r.verdict === "적합" && r.passed.length)
+        reasons += r.passed.map(t => `<li class="o">${esc(t)}</li>`).join("");
+      const title = r.url
+        ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a>` : esc(r.title);
+      const preciseTag = r.precise ? `<span class="ptag">공고문 반영</span>` : "";
+      const btn = (r.has_doc && !r.precise)
+        ? `<button type="button" class="precise-btn" data-id="${esc(r.id)}">📄 공고문으로 정밀 진단</button>`
+        : "";
+      return `<div class="result ${c}" data-card="${esc(r.id)}">
           <div class="top">
             <div>
-              <div class="title">${title}</div>
+              <div class="title">${title} ${preciseTag}</div>
               <div class="sub">${esc(r.organ)} · ${esc(r.category)} · <span class="dday">${esc(ddayText(r.deadline))}</span></div>
             </div>
             <span class="badge ${c}">${esc(r.verdict)}</span>
           </div>
           ${reasons ? `<ul class="reasons">${reasons}</ul>` : ""}
+          ${btn}
         </div>`;
-      }).join("");
     }
 
     function esc(s) {
       return String(s).replace(/[&<>"']/g, m =>
         ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
     }
+
+    let lastProfile = null;
+
+    // 정밀 진단 버튼(이벤트 위임): 클릭한 공고 하나만 공고문까지 받아 재판정
+    document.getElementById("results").addEventListener("click", async (e) => {
+      const btn = e.target.closest(".precise-btn");
+      if (!btn || !lastProfile) return;
+      const id = btn.dataset.id;
+      btn.disabled = true; btn.textContent = "공고문 분석 중… (수십 초 걸릴 수 있어요)";
+      try {
+        const res = await fetch("/api/precise", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...lastProfile, announcement_id: id }),
+        });
+        const data = await res.json();
+        if (data.error) { btn.disabled = false; btn.textContent = "📄 공고문으로 정밀 진단"; alert(data.error); return; }
+        const card = document.querySelector(`[data-card="${CSS.escape(id)}"]`);
+        if (card) card.outerHTML = resultCard(data.result);
+      } catch (err) {
+        btn.disabled = false; btn.textContent = "📄 공고문으로 정밀 진단";
+        alert("정밀 진단 중 오류: " + err);
+      }
+    });
 
     document.getElementById("form").addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -239,6 +279,7 @@
         age: f.age.value === "" ? null : f.age.value,
         business_traits: traits,
       };
+      lastProfile = payload;
       const btn = f.querySelector("button");
       btn.disabled = true; btn.textContent = "진단 중…";
       try {

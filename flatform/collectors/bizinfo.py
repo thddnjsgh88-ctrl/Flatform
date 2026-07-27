@@ -64,6 +64,21 @@ def _eligibility_text(item: dict) -> str:
     return " / ".join(p for p in parts if p)
 
 
+def _doc_url(item: dict) -> str:
+    """정밀 판정용 공고문 다운로드 URL.
+
+    printFlpthNm = 공고문(HWP/PDF) 직접 다운로드 URL. flpthNm 은 붙임파일
+    묶음(zip)이라 공고문 파싱에 부적합하므로, zip 이 아닐 때만 폴백으로 쓴다.
+    """
+    doc = item.get("printFlpthNm", "")
+    if doc:
+        return doc
+    fallback = item.get("flpthNm", "")
+    if fallback and not str(item.get("fileNm", "")).lower().endswith(".zip"):
+        return fallback
+    return ""
+
+
 def to_announcements(payload: dict | list) -> list[Announcement]:
     """원본 응답을 Announcement 목록으로 변환한다."""
     items = payload.get("jsonArray", []) if isinstance(payload, dict) else payload
@@ -77,6 +92,7 @@ def to_announcements(payload: dict | list) -> list[Announcement]:
             category=item.get("pldirSportRealmLclasCodeNm", ""),
             raw_eligibility=_eligibility_text(item),
             url=urllib.parse.urljoin("https://www.bizinfo.go.kr", item.get("pblancUrl", "")),
+            doc_url=_doc_url(item),
             apply_start=start,
             apply_end=end,
             source=Source.BIZINFO,
