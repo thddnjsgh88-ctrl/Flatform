@@ -1,0 +1,91 @@
+import unittest
+
+from flatform.parser import extract_eligibility, extract_industries, extract_regions
+
+
+class TestRegionExtraction(unittest.TestCase):
+    def test_region_with_context(self):
+        rules = extract_eligibility("서울특별시 소재 소상공인")
+        self.assertEqual(rules.regions, ["서울"])
+
+    def test_long_name_normalized(self):
+        self.assertEqual(extract_regions("경상북도 관내 기업"), ["경북"])
+
+    def test_nationwide_means_no_restriction(self):
+        self.assertEqual(extract_regions("전국 소상공인 누구나"), [])
+
+    def test_region_without_context_ignored(self):
+        # '소재'류 문맥 없이 등장한 지역명은 제한으로 해석하지 않는다
+        self.assertEqual(extract_regions("부산 지역경제 활성화를 위한 사업"), [])
+
+    def test_institution_name_not_treated_as_region(self):
+        # 기관명(경북대학교)의 지역명은 오탐이므로 자격 지역으로 잡지 않는다
+        text = "경북대학교 산학협력단은 대구 지역 內 소재하는 중소기업을 모집한다"
+        self.assertEqual(extract_regions(text), ["대구"])
+
+
+class TestNumericExtraction(unittest.TestCase):
+    def test_years_max(self):
+        rules = extract_eligibility("창업 후 7년 이내 기업")
+        self.assertEqual(rules.max_years, 7)
+
+    def test_years_min(self):
+        rules = extract_eligibility("업력 2년 이상인 사업자")
+        self.assertEqual(rules.min_years, 2)
+
+    def test_revenue_billion(self):
+        rules = extract_eligibility("연 매출액 10억원 이하인 사업자")
+        self.assertEqual(rules.max_revenue, 1_000_000_000)
+
+    def test_revenue_ten_million(self):
+        rules = extract_eligibility("매출액 3천만원 이상")
+        self.assertEqual(rules.min_revenue, 30_000_000)
+
+    def test_employees_strict_less_than(self):
+        rules = extract_eligibility("상시근로자 수 5인 미만")
+        self.assertEqual(rules.max_employees, 4)
+
+    def test_employees_at_most(self):
+        rules = extract_eligibility("상시 근로자 10명 이하")
+        self.assertEqual(rules.max_employees, 10)
+
+    def test_age_range(self):
+        rules = extract_eligibility("만 19세 이상 만 39세 이하 청년")
+        self.assertEqual(rules.min_age, 19)
+        self.assertEqual(rules.max_age, 39)
+
+
+class TestTargetTypes(unittest.TestCase):
+    def test_keywords_collected(self):
+        rules = extract_eligibility("예비창업자 및 창업 3년 이내 소상공인")
+        self.assertIn("예비창업자", rules.target_types)
+        self.assertIn("소상공인", rules.target_types)
+
+    def test_mid_large_compound(self):
+        # "중소·중견기업"은 중소기업·중견기업 둘 다로 인식
+        rules = extract_eligibility("대구 지역 內 소재하는 중소·중견기업")
+        self.assertIn("중소기업", rules.target_types)
+        self.assertIn("중견기업", rules.target_types)
+
+    def test_empty_text(self):
+        self.assertTrue(extract_eligibility("자세한 내용은 공고문 참조").is_empty())
+
+
+class TestIndustryExtraction(unittest.TestCase):
+    def test_industry_with_context(self):
+        self.assertEqual(extract_industries("대상 업종이 제조업 영위 기업"), ["제조업"])
+
+    def test_industry_without_context_ignored(self):
+        # 문맥어(업종/영위/분야) 없이 스쳐 지나가는 언급은 대상 업종으로 보지 않는다
+        self.assertEqual(extract_industries("제조업 활성화를 위한 지원사업 안내"), [])
+
+    def test_policy_category_not_matched(self):
+        # '신산업' 등 정책 카테고리는 표준 업종이 아니므로 추출하지 않는다
+        self.assertEqual(extract_industries("대구 5대 신산업 분야: 헬스케어, 로봇, 반도체"), [])
+
+    def test_longest_industry_wins(self):
+        self.assertEqual(extract_industries("대상 업종: 교육서비스업 영위 기관"), ["교육서비스업"])
+
+
+if __name__ == "__main__":
+    unittest.main()

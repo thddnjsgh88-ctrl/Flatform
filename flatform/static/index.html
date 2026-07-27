@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%234f46e5'/%3E%3Ctext x='32' y='45' font-size='38' font-weight='bold' text-anchor='middle' fill='white' font-family='sans-serif'%3EF%3C/text%3E%3C/svg%3E">
+  <title>Flatform · 내 사업장 지원사업 자격 진단</title>
+  <style>
+    :root {
+      --brand: #4f46e5; --brand-2: #6366f1; --brand-ink: #ffffff;
+      --bg: #f6f7f9; --bg-2: #eef0f4; --card: #ffffff;
+      --ink: #14161c; --ink-2: #3d4350; --muted: #757c8a; --line: #e6e8ee;
+      --ok-bg: #e9f9ef; --ok-ink: #15803d; --ok-line: #b7ebc8;
+      --warn-bg: #fef6e7; --warn-ink: #b45309; --warn-line: #f7e0a8;
+      --no-bg: #fdecef; --no-ink: #be123c; --no-line: #f7c6d1;
+      --closed-bg: #eef0f3; --closed-ink: #6b7280;
+      --shadow: 0 1px 2px rgba(20,22,28,.04), 0 8px 24px rgba(20,22,28,.06);
+      --shadow-lg: 0 4px 12px rgba(20,22,28,.08), 0 24px 48px rgba(20,22,28,.10);
+      --radius: 16px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0d0f14; --bg-2: #12151c; --card: #171a22;
+        --ink: #eceef3; --ink-2: #c2c7d2; --muted: #8a92a3; --line: #262a34;
+        --ok-bg: #12251a; --ok-ink: #4ade80; --ok-line: #1f4a30;
+        --warn-bg: #29200e; --warn-ink: #fbbf24; --warn-line: #4d3c14;
+        --no-bg: #2a1319; --no-ink: #fb7185; --no-line: #4d1f2b;
+        --closed-bg: #1c2029; --closed-ink: #8a92a3;
+        --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+        --shadow-lg: 0 4px 12px rgba(0,0,0,.4), 0 24px 48px rgba(0,0,0,.5);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0; background: var(--bg); color: var(--ink); overflow-x: hidden;
+      font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+        "Malgun Gothic", "Segoe UI", Roboto, sans-serif;
+      line-height: 1.55; letter-spacing: -0.01em;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── 헤더 ── */
+    header {
+      position: sticky; top: 0; z-index: 20;
+      background: color-mix(in srgb, var(--card) 88%, transparent);
+      backdrop-filter: saturate(1.4) blur(12px);
+      border-bottom: 1px solid var(--line);
+      padding: 14px max(20px, env(safe-area-inset-left));
+    }
+    .brand { max-width: 1040px; margin: 0 auto; display: flex; align-items: center; gap: 11px; }
+    .logo {
+      width: 34px; height: 34px; border-radius: 10px; flex: none;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 17px;
+      box-shadow: 0 4px 12px color-mix(in srgb, var(--brand) 40%, transparent);
+    }
+    .brand h1 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -0.02em; }
+    .brand p { margin: 1px 0 0; font-size: 12px; color: var(--muted); }
+
+    .wrap {
+      max-width: 1040px; margin: 0 auto;
+      padding: 22px max(18px, env(safe-area-inset-left)) 64px;
+      display: grid; grid-template-columns: 1fr; gap: 18px;
+    }
+    @media (min-width: 900px) {
+      .wrap { grid-template-columns: 372px 1fr; align-items: start; gap: 24px; padding-top: 28px; }
+      .panel { position: sticky; top: 82px; }
+    }
+
+    .card {
+      background: var(--card); border: 1px solid var(--line);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+    }
+    .panel { padding: 22px; }
+    .panel h2 { margin: 0 0 4px; font-size: 16px; font-weight: 800; }
+    .panel .lede { margin: 0 0 18px; font-size: 12.5px; color: var(--muted); }
+
+    /* ── 폼 ── */
+    .field { margin-bottom: 14px; min-width: 0; }
+    .field, .row2, .traits, .panel, .result, #output { min-width: 0; }
+    input, select { min-width: 0; }
+    .field label, .group-label { display: block; font-size: 12.5px; font-weight: 700; color: var(--ink-2); margin-bottom: 6px; }
+    .field .hint, .group-label .hint { font-weight: 500; color: var(--muted); }
+    input, select {
+      width: 100%; padding: 11px 12px; font-size: 15px; font-family: inherit;
+      color: var(--ink); background: var(--bg-2); border: 1.5px solid transparent;
+      border-radius: 11px; transition: border-color .15s, background .15s, box-shadow .15s;
+      -webkit-appearance: none; appearance: none;
+    }
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23757c8a' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px;
+    }
+    input:focus, select:focus {
+      outline: none; background: var(--card); border-color: var(--brand);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 15%, transparent);
+    }
+    input::placeholder { color: var(--muted); }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .traits { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .cb {
+      display: flex; align-items: center; gap: 8px; margin: 0; padding: 9px 11px;
+      font-size: 13px; font-weight: 600; color: var(--ink-2);
+      background: var(--bg-2); border: 1.5px solid transparent; border-radius: 10px; cursor: pointer;
+      transition: all .15s;
+    }
+    .cb:hover { border-color: var(--line); }
+    .cb input { width: 17px; height: 17px; accent-color: var(--brand); margin: 0; flex: none; }
+    .cb:has(input:checked) {
+      background: color-mix(in srgb, var(--brand) 10%, var(--card));
+      border-color: color-mix(in srgb, var(--brand) 45%, transparent); color: var(--brand);
+    }
+
+    .cta {
+      width: 100%; margin-top: 20px; padding: 14px; font-size: 15.5px; font-weight: 800; font-family: inherit;
+      color: var(--brand-ink); border: 0; border-radius: 12px; cursor: pointer;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      box-shadow: 0 6px 16px color-mix(in srgb, var(--brand) 34%, transparent);
+      transition: transform .12s, box-shadow .15s, opacity .15s;
+    }
+    .cta:hover { transform: translateY(-1px); box-shadow: 0 10px 22px color-mix(in srgb, var(--brand) 40%, transparent); }
+    .cta:active { transform: translateY(0); }
+    .cta:disabled { opacity: .7; cursor: default; transform: none; }
+    .meta { margin: 13px 0 0; font-size: 11.5px; color: var(--muted); text-align: center; }
+
+    /* ── 결과 필터 ── */
+    #output { min-height: 40px; }
+    .controls { margin-bottom: 15px; display: grid; gap: 10px; }
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;
+      font-size: 13px; font-weight: 700; font-family: inherit;
+      padding: 7px 13px; border-radius: 999px; border: 1px solid transparent; transition: all .15s;
+    }
+    .pill b { font-size: 13px; }
+    .pill .dot { width: 7px; height: 7px; border-radius: 50%; }
+    .pill.ok { background: var(--ok-bg); color: var(--ok-ink); border-color: var(--ok-line); }
+    .pill.ok .dot { background: var(--ok-ink); }
+    .pill.warn { background: var(--warn-bg); color: var(--warn-ink); border-color: var(--warn-line); }
+    .pill.warn .dot { background: var(--warn-ink); }
+    .pill.no { background: var(--no-bg); color: var(--no-ink); border-color: var(--no-line); }
+    .pill.no .dot { background: var(--no-ink); }
+    .pill.closed { background: var(--closed-bg); color: var(--closed-ink); }
+    .pill.closed .dot { background: var(--closed-ink); }
+    .pill.muted { background: transparent; color: var(--muted); border-color: var(--line); }
+    .pill.muted .dot { background: var(--muted); opacity: .5; }
+    .filter-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .minisel {
+      width: auto; padding: 8px 32px 8px 12px; font-size: 13px; font-weight: 600;
+      background-color: var(--card); border: 1.5px solid var(--line); border-radius: 10px;
+    }
+    .count { font-size: 12px; color: var(--muted); margin-left: auto; }
+
+    .result {
+      background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+      padding: 16px 17px; margin-bottom: 11px; box-shadow: var(--shadow);
+      position: relative; overflow: hidden; animation: rise .3s ease both;
+    }
+    .result::before {
+      content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    }
+    .result.ok::before { background: var(--ok-ink); }
+    .result.warn::before { background: var(--warn-ink); }
+    .result.no::before { background: var(--no-ink); }
+    .result.closed::before { background: var(--closed-ink); }
+    .result.closed { opacity: .72; }
+    @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    .r-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .r-top > div:first-child { min-width: 0; }  /* 긴 제목이 배지를 밀어내지 않게 */
+    .r-title { font-weight: 700; font-size: 15px; line-height: 1.4; word-break: keep-all; overflow-wrap: anywhere; }
+    .r-title a { color: var(--ink); text-decoration: none; }
+    .r-title a:hover { color: var(--brand); text-decoration: underline; }
+    .r-sub { font-size: 12px; color: var(--muted); margin-top: 5px; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+    .dday { font-weight: 700; }
+    .dday.urgent { color: var(--no-ink); }
+    .ptag { font-size: 10.5px; font-weight: 800; color: var(--ok-ink); background: var(--ok-bg);
+      padding: 2px 7px; border-radius: 6px; border: 1px solid var(--ok-line); vertical-align: middle; }
+
+    .badge {
+      flex: none; font-size: 12px; font-weight: 800; padding: 5px 11px; border-radius: 8px; white-space: nowrap;
+    }
+    .badge.ok { background: var(--ok-bg); color: var(--ok-ink); }
+    .badge.warn { background: var(--warn-bg); color: var(--warn-ink); }
+    .badge.no { background: var(--no-bg); color: var(--no-ink); }
+    .badge.closed { background: var(--closed-bg); color: var(--closed-ink); }
+
+    .reasons { margin: 12px 0 0; padding: 0; list-style: none; display: grid; gap: 5px; }
+    .reasons li { font-size: 13px; color: var(--ink-2); padding-left: 22px; position: relative; }
+    .reasons li::before { position: absolute; left: 0; top: -1px; font-weight: 800; }
+    .reasons li.x::before { content: "✕"; color: var(--no-ink); }
+    .reasons li.q::before { content: "?"; color: var(--warn-ink); }
+    .reasons li.o::before { content: "✓"; color: var(--ok-ink); }
+
+    .precise-btn {
+      margin-top: 13px; display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 14px; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer;
+      color: var(--brand); background: color-mix(in srgb, var(--brand) 8%, var(--card));
+      border: 1.5px solid color-mix(in srgb, var(--brand) 25%, transparent); border-radius: 10px;
+      transition: background .15s;
+    }
+    .precise-btn:hover { background: color-mix(in srgb, var(--brand) 14%, var(--card)); }
+    .precise-btn:disabled { opacity: .65; cursor: default; }
+
+    /* ── 상태 화면 ── */
+    .placeholder {
+      text-align: center; padding: 56px 24px; color: var(--muted);
+    }
+    .placeholder .emoji { font-size: 40px; display: block; margin-bottom: 12px; opacity: .9; }
+    .placeholder b { color: var(--ink-2); }
+    .skeleton { display: grid; gap: 11px; }
+    .sk { height: 92px; border-radius: 14px; background: var(--card); border: 1px solid var(--line);
+      position: relative; overflow: hidden; }
+    .sk::after { content: ""; position: absolute; inset: 0;
+      background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--muted) 12%, transparent), transparent);
+      transform: translateX(-100%); animation: shimmer 1.2s infinite; }
+    @keyframes shimmer { to { transform: translateX(100%); } }
+
+    .spin { width: 15px; height: 15px; border: 2px solid currentColor; border-right-color: transparent;
+      border-radius: 50%; display: inline-block; animation: rot .7s linear infinite; vertical-align: -2px; }
+    @keyframes rot { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo">F</div>
+      <div>
+        <h1>Flatform</h1>
+        <p>내 사업장이 되는 지원사업만, 한눈에</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <form class="card panel" id="form">
+      <h2>내 사업장 정보</h2>
+      <p class="lede">입력할수록 진단이 정확해집니다. 지금 신청 가능한 정부·지자체 지원사업을 자격 사유와 함께 알려드려요.</p>
+
+      <div class="field">
+        <label>상호 <span class="hint">· 선택</span></label>
+        <input name="name" placeholder="예: 마포 김서방 카페" autocomplete="off">
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label>지역</label>
+          <select name="region" required>
+            <option value="서울">서울</option><option value="부산">부산</option>
+            <option value="대구">대구</option><option value="인천">인천</option>
+            <option value="광주">광주</option><option value="대전">대전</option>
+            <option value="울산">울산</option><option value="세종">세종</option>
+            <option value="경기">경기</option><option value="강원">강원</option>
+            <option value="충북">충북</option><option value="충남">충남</option>
+            <option value="전북">전북</option><option value="전남">전남</option>
+            <option value="경북">경북</option><option value="경남">경남</option>
+            <option value="제주">제주</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>업종</label>
+          <input name="industry" required placeholder="예: 음식점업" list="industries" autocomplete="off">
+          <datalist id="industries">
+            <option>음식점업</option><option>도소매업</option><option>제조업</option>
+            <option>건설업</option><option>운수업</option><option>정보통신업</option>
+            <option>교육서비스업</option><option>서비스업</option>
+          </datalist>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label>업력 <span class="hint">· 년</span></label>
+          <input name="years_in_business" type="number" inputmode="decimal" min="0" step="0.5" value="0" required>
+        </div>
+        <div class="field">
+          <label>상시근로자 <span class="hint">· 명</span></label>
+          <input name="employees" type="number" inputmode="numeric" min="0" step="1" value="0" required>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label>연 매출 <span class="hint">· 만원, 선택</span></label>
+          <input name="annual_revenue_man" type="number" inputmode="numeric" min="0" step="100" placeholder="미입력">
+        </div>
+        <div class="field">
+          <label>대표자 나이 <span class="hint">· 만, 선택</span></label>
+          <input name="age" type="number" inputmode="numeric" min="0" step="1" placeholder="미입력">
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="group-label">기업 특성 <span class="hint">· 해당되면 체크, 선택</span></span>
+        <div class="traits">
+          <label class="cb"><input type="checkbox" name="trait" value="사회적기업"> 사회적기업</label>
+          <label class="cb"><input type="checkbox" name="trait" value="여성기업"> 여성기업</label>
+          <label class="cb"><input type="checkbox" name="trait" value="장애인기업"> 장애인기업</label>
+          <label class="cb"><input type="checkbox" name="trait" value="마을기업"> 마을기업</label>
+          <label class="cb"><input type="checkbox" name="trait" value="협동조합"> 협동조합</label>
+          <label class="cb"><input type="checkbox" name="trait" value="1인창조기업"> 1인창조기업</label>
+        </div>
+      </div>
+
+      <button type="submit" class="cta">지원사업 진단하기</button>
+      <p class="meta" id="meta">공고 정보를 불러오는 중…</p>
+    </form>
+
+    <section id="output">
+      <div id="controls" class="controls" hidden>
+        <div class="filters" id="verdictFilters"></div>
+        <div class="filter-row">
+          <select id="catFilter" class="minisel" aria-label="분야 필터"><option value="__all">전체 분야</option></select>
+          <select id="sortBy" class="minisel" aria-label="정렬 기준">
+            <option value="recommend">추천순</option>
+            <option value="deadline">마감 임박순</option>
+          </select>
+          <span class="count" id="resultCount" aria-live="polite"></span>
+        </div>
+      </div>
+      <div id="results">
+        <div class="card placeholder">
+          <span class="emoji">🔎</span>
+          <div><b>사업장 정보를 입력</b>하고 진단하기를 눌러주세요.<br>지금 신청 가능한 지원사업을 찾아드립니다.</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const VC = { "적합": "ok", "판단보류": "warn", "부적합": "no", "접수마감": "closed" };
+
+    fetch("/api/meta").then(r => r.json()).then(m => {
+      document.getElementById("meta").textContent =
+        `현재 공고 ${m.count.toLocaleString()}건 (${m.source}) 기준`;
+    }).catch(() => { document.getElementById("meta").textContent = ""; });
+
+    function ddayText(d) {
+      if (!d) return "";
+      if (d.d_day === null) return "상시 접수";
+      if (d.d_day < 0) return `${d.label} 마감`;
+      return `~${d.label} · D-${d.d_day}`;
+    }
+
+    const VORDER = [["적합","ok"],["판단보류","warn"],["부적합","no"],["접수마감","closed"]];
+    let allResults = [];
+    // 기본은 실제로 신청 가능한 것에 집중: 적합·판단보류만. 부적합·마감은 숨김.
+    const activeVerdicts = new Set(["적합", "판단보류"]);
+
+    function renderControls(summary) {
+      document.getElementById("controls").hidden = false;
+      document.getElementById("verdictFilters").innerHTML = VORDER
+        .filter(([k]) => summary[k])
+        .map(([k, c]) => `<button type="button" class="pill ${c} ${activeVerdicts.has(k) ? "" : "muted"}" data-v="${k}"><span class="dot"></span>${k} <b>${summary[k]}</b></button>`)
+        .join("");
+      const cats = [...new Set(allResults.map(r => r.category).filter(Boolean))].sort();
+      document.getElementById("catFilter").innerHTML =
+        `<option value="__all">전체 분야</option>` + cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
+    }
+
+    function deadlineKey(r) {
+      const d = r.deadline;
+      if (!d || d.d_day === null) return 100000;       // 상시접수는 뒤로
+      return d.d_day < 0 ? 200000 : d.d_day;           // 마감은 맨 뒤, 임박할수록 앞
+    }
+
+    function applyFilters() {
+      const cat = document.getElementById("catFilter").value;
+      const sort = document.getElementById("sortBy").value;
+      let list = allResults.filter(r => activeVerdicts.has(r.verdict) && (cat === "__all" || r.category === cat));
+      if (sort === "deadline") list = [...list].sort((a, b) => deadlineKey(a) - deadlineKey(b));
+      document.getElementById("resultCount").textContent = `${list.length}개 표시`;
+      renderResults(list);
+    }
+
+    document.getElementById("verdictFilters").addEventListener("click", (e) => {
+      const pill = e.target.closest(".pill");
+      if (!pill) return;
+      const v = pill.dataset.v;
+      if (activeVerdicts.has(v)) activeVerdicts.delete(v); else activeVerdicts.add(v);
+      pill.classList.toggle("muted");
+      applyFilters();
+    });
+    document.getElementById("catFilter").addEventListener("change", applyFilters);
+    document.getElementById("sortBy").addEventListener("change", applyFilters);
+
+    function renderResults(results) {
+      const box = document.getElementById("results");
+      if (!results.length) {
+        // 결과 자체가 없는 경우와, 결과는 있으나 필터로 가려진 경우를 구분해 안내
+        const msg = allResults.length
+          ? `선택한 필터에 해당하는 공고가 없어요.<br>위에서 <b>판정·분야 필터</b>를 조정해보세요.`
+          : `조건에 맞는 공고를 찾지 못했어요.<br>입력값을 바꿔 다시 진단해보세요.`;
+        box.innerHTML = `<div class="card placeholder"><span class="emoji">🗂️</span><div>${msg}</div></div>`;
+        return;
+      }
+      box.innerHTML = results.map(resultCard).join("");
+    }
+
+    function resultCard(r) {
+      const c = VC[r.verdict] || "closed";
+      let reasons = "";
+      if (r.failed.length) reasons += r.failed.map(t => `<li class="x">${esc(t)}</li>`).join("");
+      if (r.unknown.length) reasons += r.unknown.map(t => `<li class="q">${esc(t)}</li>`).join("");
+      if (r.verdict === "적합" && r.passed.length)
+        reasons += r.passed.map(t => `<li class="o">${esc(t)}</li>`).join("");
+      const title = r.url
+        ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a>` : esc(r.title);
+      const dd = r.deadline || {};
+      const urgent = dd.d_day !== null && dd.d_day >= 0 && dd.d_day <= 7 ? " urgent" : "";
+      const ptag = r.precise ? ` <span class="ptag">공고문 반영</span>` : "";
+      const btn = (r.has_doc && !r.precise)
+        ? `<button type="button" class="precise-btn" data-id="${esc(r.id)}">📄 공고문으로 정밀 진단</button>` : "";
+      return `<article class="result ${c}" data-card="${esc(r.id)}">
+        <div class="r-top">
+          <div>
+            <div class="r-title">${title}${ptag}</div>
+            <div class="r-sub"><span>${esc(r.organ)}</span><span>·</span><span>${esc(r.category)}</span><span>·</span><span class="dday${urgent}">${esc(ddayText(dd))}</span></div>
+          </div>
+          <span class="badge ${c}">${esc(r.verdict)}</span>
+        </div>
+        ${reasons ? `<ul class="reasons">${reasons}</ul>` : ""}
+        ${btn}
+      </article>`;
+    }
+
+    function esc(s) {
+      return String(s).replace(/[&<>"']/g, m =>
+        ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+    }
+
+    let lastProfile = null;
+
+    document.getElementById("results").addEventListener("click", async (e) => {
+      const btn = e.target.closest(".precise-btn");
+      if (!btn || !lastProfile) return;
+      const id = btn.dataset.id;
+      btn.disabled = true; btn.innerHTML = `<span class="spin"></span> 공고문 분석 중…`;
+      try {
+        const res = await fetch("/api/precise", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...lastProfile, announcement_id: id }),
+        });
+        const data = await res.json();
+        if (data.error) { btn.disabled = false; btn.textContent = "📄 공고문으로 정밀 진단"; alert(data.error); return; }
+        const idx = allResults.findIndex(r => r.id === id);
+        if (idx >= 0) allResults[idx] = data.result;   // 필터 재적용 시 정밀 결과 유지
+        const card = document.querySelector(`[data-card="${CSS.escape(id)}"]`);
+        if (card) card.outerHTML = resultCard(data.result);
+      } catch (err) {
+        btn.disabled = false; btn.textContent = "📄 공고문으로 정밀 진단";
+        alert("정밀 진단 중 오류: " + err);
+      }
+    });
+
+    document.getElementById("form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const f = e.target;
+      const manwon = f.annual_revenue_man.value;
+      const traits = Array.from(f.querySelectorAll('input[name="trait"]:checked')).map(c => c.value);
+      const payload = {
+        name: f.name.value, region: f.region.value, industry: f.industry.value,
+        years_in_business: f.years_in_business.value, employees: f.employees.value,
+        annual_revenue: manwon === "" ? null : Math.round(Number(manwon) * 10000),
+        age: f.age.value === "" ? null : f.age.value, business_traits: traits,
+      };
+      lastProfile = payload;
+      const btn = f.querySelector(".cta");
+      btn.disabled = true; btn.innerHTML = `<span class="spin"></span> 진단 중…`;
+      document.getElementById("controls").hidden = true;
+      document.getElementById("results").innerHTML =
+        `<div class="skeleton"><div class="sk"></div><div class="sk"></div><div class="sk"></div></div>`;
+      try {
+        const res = await fetch("/api/match", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (data.error) { alert(data.error); document.getElementById("results").innerHTML = ""; return; }
+        allResults = data.results;
+        if (!allResults.length) {
+          document.getElementById("controls").hidden = true;
+          renderResults([]);            // '결과 없음' 안내 (필터 바는 숨김)
+        } else {
+          renderControls(data.summary);
+          applyFilters();
+        }
+      } catch (err) {
+        alert("진단 중 오류가 발생했습니다: " + err);
+      } finally {
+        btn.disabled = false; btn.textContent = "지원사업 진단하기";
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+# 핵심 파이프라인(수집·파서·매처·웹앱)은 표준 라이브러리만으로 동작한다.
+# 아래는 v2 공고문 파싱(flatform.docparse) 의 선택적 의존성이다.
+
+# PDF 공고문 텍스트 추출용. PyMuPDF 를 우선 사용하고(한글 CID 폰트 처리 우수),
+# 없으면 pypdf 로 폴백한다. 둘 중 하나만 있어도 동작한다.
+pymupdf>=1.24   # 권장
+pypdf>=4.0      # 폴백
+
+# 구형 .hwp(바이너리)는 LibreOffice(soffice) 로 변환한다. pip 패키지가 아니라
+# 시스템 설치가 필요하다: https://ko.libreoffice.org/download/
+# .hwpx / .pdf / .txt 는 LibreOffice 없이도 처리된다.

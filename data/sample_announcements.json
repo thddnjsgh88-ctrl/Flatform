@@ -1,0 +1,82 @@
+[
+  {
+    "id": "sample-001",
+    "title": "2026년 서울시 소상공인 경영개선자금 지원",
+    "organ": "서울특별시",
+    "category": "금융",
+    "raw_eligibility": "서울특별시 소재 소상공인으로서 상시근로자 수 5인 미만(제조업·건설업·운수업은 10인 미만)이며 연 매출액 10억원 이하인 사업자. 유흥업 등 융자제외 업종은 신청 불가.",
+    "url": "https://example.org/sample-001",
+    "apply_start": "2026-07-01",
+    "apply_end": "2026-08-14"
+  },
+  {
+    "id": "sample-002",
+    "title": "2026년 청년창업사관학교 입교기업 모집 (2차)",
+    "organ": "중소벤처기업진흥공단",
+    "category": "창업",
+    "raw_eligibility": "전국의 만 39세 이하 예비창업자 및 창업 후 3년 이내 기업의 대표자. 기술 기반 창업 아이템 보유자 우대.",
+    "url": "https://example.org/sample-002",
+    "apply_start": "2026-07-10",
+    "apply_end": "2026-08-05"
+  },
+  {
+    "id": "sample-003",
+    "title": "경기도 소상공인 스마트상점 기술보급 사업",
+    "organ": "경기도경제과학진흥원",
+    "category": "기술",
+    "raw_eligibility": "경기도 관내 소재 소상공인. 상시근로자 5인 미만 점포를 운영 중인 사업자로 업력 1년 이상.",
+    "url": "https://example.org/sample-003",
+    "apply_start": "2026-06-20",
+    "apply_end": "2026-07-31"
+  },
+  {
+    "id": "sample-004",
+    "title": "중소기업 수출바우처 지원사업 (3차)",
+    "organ": "중소벤처기업부",
+    "category": "판로·수출",
+    "raw_eligibility": "전국 중소기업 중 전년도 수출실적 보유 기업. 연 매출액 100억원 이하 기업 우선 지원.",
+    "url": "https://example.org/sample-004",
+    "apply_start": "2026-07-15",
+    "apply_end": "2026-08-28"
+  },
+  {
+    "id": "sample-005",
+    "title": "서울 강북권 골목상권 활성화 지원",
+    "organ": "서울신용보증재단",
+    "category": "금융",
+    "raw_eligibility": "서울 소재 골목상권 내 점포를 운영하는 소상공인. 업력 2년 이상, 연 매출액 5억원 이하.",
+    "url": "https://example.org/sample-005",
+    "apply_start": "2026-05-01",
+    "apply_end": "2026-06-30"
+  },
+  {
+    "id": "sample-006",
+    "title": "2026년 초기창업패키지 창업기업 모집",
+    "organ": "창업진흥원",
+    "category": "창업",
+    "raw_eligibility": "전국의 창업 3년 이내 기업. 대표자가 만 19세 이상이어야 하며, 사업 개시 후 첫 매출 발생 여부는 무관.",
+    "url": "https://example.org/sample-006",
+    "apply_start": "2026-07-05",
+    "apply_end": "2026-08-10"
+  },
+  {
+    "id": "sample-007",
+    "title": "부산시 중장년 재도전 창업 지원사업",
+    "organ": "부산경제진흥원",
+    "category": "창업",
+    "raw_eligibility": "부산광역시 소재 예비창업자 중 만 40세 이상. 폐업 이력 보유자 우대.",
+    "url": "https://example.org/sample-007",
+    "apply_start": "2026-07-01",
+    "apply_end": "2026-08-21"
+  },
+  {
+    "id": "sample-008",
+    "title": "소상공인 온라인 판로진출 지원 (전국)",
+    "organ": "소상공인시장진흥공단",
+    "category": "판로·수출",
+    "raw_eligibility": "전국 소상공인 누구나. 상시근로자 수 5인 미만(제조업은 10인 미만), 연 매출액 3억원 이하 사업자 우선 선정.",
+    "url": "https://example.org/sample-008",
+    "apply_start": "2026-07-01",
+    "apply_end": "2026-09-30"
+  }
+]
